@@ -1,0 +1,16 @@
+*.o
+*.so
+*.jpg
+*.mov
+*.mp4
+*.mp3
+*.wav
+*.qbs
+*.json
+.*.sw*
+*/bin/*
+*/obj/
+*/libs/
+!*/bin/data
+*/images/*
+*/files/*
