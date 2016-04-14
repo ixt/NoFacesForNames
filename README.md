@@ -7,6 +7,7 @@ A collection of scripts for various things I needed for the programming side of 
 * mplayer speed control for heartbeat  
 
 everything is provided as is, CC-0 (see COPYING.TXT) for all my work, there is an included haar cascade it is not mine, i can remove it upon request   
+the heartbeat wav file is in the public domain under CC-0, feel free to reuse and redistribute  
 
 it will probably be still sloppy in places but hopefully it may help you with whatever you want  
 note: that in some places paths are from the home directory, always study the code before running  
