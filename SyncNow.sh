@@ -86,6 +86,10 @@ do_download_then_clear() {
     do_clear_files
 }
 
+rotate_images_and_clean() {
+    ./FileSorter.sh
+}
+
 #
 # Interactive loop
 #
@@ -100,6 +104,7 @@ while true; do
     "5 Images+JSON" "same as 4 but with JSON" \
     "6 Delete" "files on device" \
     "7 Time" "set time" \
+    "8 Sort" "sort and rotate images in files" \
     3>&1 1>&2 2>&3)
     RET=$?
     if [ $RET -eq 1 ]; then
@@ -113,6 +118,7 @@ while true; do
             5\ *) do_get_files ;;
             6\ *) do_clear_files ;;
             7\ *) do_set_time ;;
+            8\ *) rotate_images_and_clean ;;
             *) whiptail --msgbox "Unrecognised option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error with $FUN" 20 60 1
     else
