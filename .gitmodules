@@ -1,0 +1,3 @@
+[submodule "narrative-gps"]
+    path = narrative-gps
+    url = https://github.com/maxime/narrative-gps.git

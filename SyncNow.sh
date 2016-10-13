@@ -1,5 +1,5 @@
 #!/bin/bash
-# Utility for dealing with Memento/Narrative Clip 
+# Utility for dealing with Memento/Narrative Clip
 # CC-0 Ixtli Orange 2016
 
 # if width is 0 or less than 60, make it 80
@@ -8,11 +8,11 @@
 calc_whiptail_size(){
     WT_HEIGHT=20
     WT_WIDTH=$(tput cols)
-    
+
     if [ -z "$WT_WIDTH" ] || [ "$WT_WIDTH" -lt 50 ]; then
         WT_WIDTH=60
     fi
-    if [ "$WT_WIDTH" -gt 60 ]; then 
+    if [ "$WT_WIDTH" -gt 60 ]; then
         WT_WIDTH=60
     fi
 
@@ -20,14 +20,14 @@ calc_whiptail_size(){
 }
 
 do_about() {
-    whiptail --msgbox " 
+    whiptail --msgbox "
     This utility is designed to make downloading and working
     with a Narrative Clip on Linux much nicer and pretty.\
         " 20 70 1
 }
 
 do_change_if() {
-    sudo ifconfig usb0 192.168.2.10 netmask 255.255.255.0 broadcast 192.168.2.255 
+    sudo ifconfig usb0 192.168.2.10 netmask 255.255.255.0 broadcast 192.168.2.255
     sudo ifconfig usb0 | grep "inet addr:" | cut -d: -f2 | awk '{ print $1 }'
 }
 
@@ -38,15 +38,17 @@ do_get_host_ip() {
 do_get_files() {
     if [ -e ./files ]; then
         cd files
-        wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg,json && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2 
+        wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg,json,snap && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
         mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg"
         mmv "*/event_*_*_*.meta.json" "#1/#2_#3.meta.json"
+        mmv "*/event_*_*_*.meta.snap" "#1/#2_#3.meta.snap"
         cd ..
-    else 
+    else
     mkdir files && cd files
-    wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg,json && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
+    wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg,json,snap && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
     mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg"
      mmv "*/event_*_*_*.meta.json" "#1/#2_#3.meta.json"
+     mmv "*/event_*_*_*.meta.snap" "#1/#2_#3.meta.snap"
      cd ..
 fi
 }
@@ -54,9 +56,9 @@ fi
 do_get_images() {
     if [ -e ./images ]; then
         cd images
-        wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2 
+        wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
         mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg" && cd ..
-    else 
+    else
     mkdir images && cd images
     wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
     mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg" && cd ..
@@ -71,14 +73,14 @@ do_list_images() {
 }
 
 do_clear_files() {
-    { echo "rm /mnt/storage/*_*/ -r";sleep 10; echo "exit"; } | telnet 192.168.2.2 
-    whiptail --textbox "Done" 10 20 
+    { echo "rm /mnt/storage/*_*/ -r";sleep 10; echo "exit"; } | telnet 192.168.2.2
+    whiptail --textbox "Done" 10 20
 }
 
 do_set_time() {
     TIME=$(date +%Y%m%d%H%M.%S)
-    { echo "date --set "$TIME ;sleep 10; echo "exit"; } | telnet 192.168.2.2 
-    whiptail --textbox "Done" 10 20 
+    { echo "date --set "$TIME ;sleep 10; echo "exit"; } | telnet 192.168.2.2
+    whiptail --textbox "Done" 10 20
 }
 
 do_download_then_clear() {
@@ -109,8 +111,8 @@ while true; do
     RET=$?
     if [ $RET -eq 1 ]; then
         exit 0
-    elif [ $RET -eq 0 ]; then 
-        case "$FUN" in 
+    elif [ $RET -eq 0 ]; then
+        case "$FUN" in
             1\ *) do_about ;;
             2\ *) do_change_if ;;
             3\ *) do_list_images ;;
@@ -122,7 +124,7 @@ while true; do
             *) whiptail --msgbox "Unrecognised option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error with $FUN" 20 60 1
     else
-        exit 1 
+        exit 1
     fi
 done
 
