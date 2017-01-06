@@ -5,6 +5,8 @@
 # if width is 0 or less than 60, make it 80
 # if width is greater than 178 then make it 120
 
+INTERFACE="enp0s29f7u1"
+
 calc_whiptail_size(){
     WT_HEIGHT=20
     WT_WIDTH=$(tput cols)
@@ -27,42 +29,39 @@ do_about() {
 }
 
 do_change_if() {
-    sudo ifconfig usb0 192.168.2.10 netmask 255.255.255.0 broadcast 192.168.2.255
-    sudo ifconfig usb0 | grep "inet addr:" | cut -d: -f2 | awk '{ print $1 }'
+    sudo ifconfig $INTERFACE 192.168.2.10 netmask 255.255.255.0 broadcast 192.168.2.255
+    sudo ifconfig $INTERFACE | grep "inet addr:" | cut -d: -f2 | awk '{ print $1 }'
 }
 
 do_get_host_ip() {
-    sudo ifconfig usb0 | grep "inet addr:" | cut -d: -f2 | awk '{ print $1 }'
+    sudo ifconfig $INTERFACE | grep "inet addr:" | cut -d: -f2 | awk '{ print $1 }'
 }
 
 do_get_files() {
-    if [ -e ./files ]; then
-        cd files
-        wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg,json,snap && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
-        mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg"
-        mmv "*/event_*_*_*.meta.json" "#1/#2_#3.meta.json"
-        mmv "*/event_*_*_*.meta.snap" "#1/#2_#3.meta.snap"
+    # If folder doesn't exist then make it
+    if [ ! -e ./files ]; then
+        mkdir files && cd files
+    fi
+    # move into files folder and download all from narrative
+    cd files
+    wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg,json,snap
+    mv ./192.168.2.2/mnt/storage/* ./ 
+    rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2 2>/dev/null
+    # list all directories
+    ls -1 -p | sed -n "/\//p" > .dirs
+    # for ever directory make a list of files then rename them to be sane
+    while read dir; do
+        cd $dir
+        ls -1 *.json *.snap *.jpg 2>/dev/null > .files
+        while read entry; do
+            FILENAME=$( echo $entry | sed -E "s/event_([^_]*)_([^_]*)_([^_.]*)\.(.*)/\1_\2.\4/")
+            mv $entry $FILENAME
+        done < .files 
+        rm .files
         cd ..
-    else
-    mkdir files && cd files
-    wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg,json,snap && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
-    mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg"
-     mmv "*/event_*_*_*.meta.json" "#1/#2_#3.meta.json"
-     mmv "*/event_*_*_*.meta.snap" "#1/#2_#3.meta.snap"
-     cd ..
-fi
-}
-
-do_get_images() {
-    if [ -e ./images ]; then
-        cd images
-        wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
-        mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg" && cd ..
-    else
-    mkdir images && cd images
-    wget ftp://192.168.2.2/mnt/storage/ --recursive -A jpg && mv ./192.168.2.2/mnt/storage/* ./ && rm -d *_* lost+found 192.168.2.2/mnt/storage 192.168.2.2/mnt 192.168.2.2
-    mmv "*/event_*_*_*.jpg" "#1/#2_#3.jpg" && cd ..
-fi
+    done < .dirs
+    rm .dirs
+    cd ..
 }
 
 # Pipe a filtered ls command after telneting to stdin and then to a textbox
@@ -89,7 +88,27 @@ do_download_then_clear() {
 }
 
 rotate_images_and_clean() {
-    ./FileSorter.sh
+    cd files
+    ls -1 > .folders
+    while read folder; do
+        cd $folder
+        # Delete Orphan Files
+        ls *.json *.jpg -1 2>/dev/null | sed -e "s/\..*//g" | uniq -u | sed -e 's/$/.meta.json/g' | xargs rm -f 2>/dev/null
+        ls *.json -1 > .listoffiles 2>/dev/null
+        # Get & Use Accelerometer data
+        while read entry; do 
+            X=$(grep acc_data $entry | cut -c 28- | cut -f 1 -d ']' | sed -e 's/,//;s/, / /' | cut -d' ' -f 1)
+            FILE=$(echo $entry | sed -e "s/\.meta\.json/\.jpg/g")
+            if [ ! $X -lt -800 ]; then
+                convert $FILE -rotate "-90>" $FILE 2>/dev/null
+            fi
+        done < .listoffiles
+        rm *.json .listoffiles 2>/dev/null
+        echo "completed $(printf '%s\n' "${PWD##*/}")" 
+        cd ..
+    done < .folders
+    rm * -d -f 2>/dev/null
+    cd ..
 }
 
 #
@@ -102,11 +121,10 @@ while true; do
     "1 About" "What's this all about?" \
     "2 Change interface" "add the usb0 interface required" \
     "3 List" "list image folders on Clip" \
-    "4 Images" "dowload images" \
-    "5 Images+JSON" "same as 4 but with JSON" \
-    "6 Delete" "files on device" \
-    "7 Time" "set time" \
-    "8 Sort" "sort and rotate images in files" \
+    "4 Images+JSON" "does what it sounds like" \
+    "5 Delete" "files on device" \
+    "6 Time" "set time" \
+    "7 Sort" "sort and rotate images in files" \
     3>&1 1>&2 2>&3)
     RET=$?
     if [ $RET -eq 1 ]; then
@@ -116,11 +134,10 @@ while true; do
             1\ *) do_about ;;
             2\ *) do_change_if ;;
             3\ *) do_list_images ;;
-            4\ *) do_get_images ;;
-            5\ *) do_get_files ;;
-            6\ *) do_clear_files ;;
-            7\ *) do_set_time ;;
-            8\ *) rotate_images_and_clean ;;
+            4\ *) do_get_files ;;
+            5\ *) do_clear_files ;;
+            6\ *) do_set_time ;;
+            7\ *) rotate_images_and_clean ;;
             *) whiptail --msgbox "Unrecognised option" 20 60 1 ;;
         esac || whiptail --msgbox "There was an error with $FUN" 20 60 1
     else
